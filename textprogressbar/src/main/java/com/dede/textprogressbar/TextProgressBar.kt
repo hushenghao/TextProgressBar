@@ -6,6 +6,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.Drawable
+import android.os.Parcel
+import android.os.Parcelable
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.View
@@ -251,6 +253,12 @@ class TextProgressBar @JvmOverloads constructor(
         return progress
     }
 
+    fun setMaxProgress(max: Int) {
+        if (max < 0) return
+        maxProgress = max
+        invalidate()
+    }
+
     fun setProgressText(text: CharSequence?) {
         this.progressText = text
         if (onAnim) {
@@ -265,5 +273,59 @@ class TextProgressBar @JvmOverloads constructor(
             return
         }
         invalidate()
+    }
+
+    override fun onSaveInstanceState(): Parcelable? {
+        val parcelable = super.onSaveInstanceState()
+        val savedState = SavedState(parcelable)
+        savedState.progressText = progressText ?: ""
+        savedState.leftText = leftText ?: ""
+        savedState.maxProgress = maxProgress
+        savedState.progress = progress
+        return savedState
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        val savedState = state as SavedState
+        super.onRestoreInstanceState(savedState.superState)
+        setLeftText(savedState.leftText)
+        setProgressText(savedState.progressText)
+        setMaxProgress(savedState.maxProgress)
+        setProgress(savedState.progress, false)
+    }
+
+    class SavedState : BaseSavedState {
+
+        var progress: Int = 0
+        var maxProgress: Int = 0
+        var leftText: CharSequence = ""
+        var progressText: CharSequence = ""
+
+        constructor(superState: Parcelable?) : super(superState)
+
+        constructor(`in`: Parcel) : super(`in`) {
+            progress = `in`.readInt()
+            maxProgress = `in`.readInt()
+            leftText = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(`in`)
+            progressText = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(`in`)
+        }
+
+        override fun writeToParcel(out: Parcel?, flags: Int) {
+            super.writeToParcel(out, flags)
+            out?.writeInt(progress)
+            out?.writeInt(maxProgress)
+            TextUtils.writeToParcel(leftText, out, flags)
+            TextUtils.writeToParcel(progressText, out, flags)
+        }
+
+        companion object CREATOR : Parcelable.Creator<SavedState> {
+            override fun createFromParcel(`in`: Parcel): SavedState {
+                return SavedState(`in`)
+            }
+
+            override fun newArray(size: Int): Array<SavedState?> {
+                return arrayOfNulls(size)
+            }
+        }
     }
 }
